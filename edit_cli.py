@@ -15,10 +15,22 @@ from omegaconf import OmegaConf
 from PIL import Image, ImageOps
 from torch import autocast
 
-sys.path.append("./stable_diffusion")
+sys.path.append("/home/moutasemhome/stable_diffusion")
+sys.path.append('/home/moutasemhome/stable_diffusion/sgm')
+sys.path.append('/home/moutasemhome/stable_diffusion/ldm')
+# sys.path.append("./stable_diffusion")
+# sys.path.append('./stable_diffusion/sgm')
+# sys.path.append('./stable_diffusion/ldm')
+
 
 from stable_diffusion.ldm.util import instantiate_from_config
 
+# import os
+
+# relative_path = './stable_diffusion/ldm'
+# absolute_path = os.path.abspath(relative_path)
+# sys.path.append(absolute_path)
+# print(sys.path)
 
 class CFGDenoiser(nn.Module):
     def __init__(self, model):
@@ -36,17 +48,50 @@ class CFGDenoiser(nn.Module):
         return out_uncond + text_cfg_scale * (out_cond - out_img_cond) + image_cfg_scale * (out_img_cond - out_uncond)
 
 
+# def load_model_from_config(config, ckpt, vae_ckpt=None, verbose=False):
+#     print(f"Loading model from {ckpt}")
+#     pl_sd = torch.load(ckpt, map_location="cpu")
+#     if "global_step" in pl_sd:
+#         print(f"Global Step: {pl_sd['global_step']}")
+#     sd = pl_sd["state_dict"]
+#     if vae_ckpt is not None:
+#         print(f"Loading VAE from {vae_ckpt}")
+#         vae_sd = torch.load(vae_ckpt, map_location="cpu")["state_dict"]
+#         sd = {
+#             k: vae_sd[k[len("first_stage_model.") :]] if k.startswith("first_stage_model.") else v
+#             for k, v in sd.items()
+#         }
+#     model = instantiate_from_config(config.model)
+#     m, u = model.load_state_dict(sd, strict=False)
+#     if len(m) > 0 and verbose:
+#         print("missing keys:")
+#         print(m)
+#     if len(u) > 0 and verbose:
+#         print("unexpected keys:")
+#         print(u)
+#     return model
+
+import torch
+from safetensors.torch import load_file as load_safetensors
+
 def load_model_from_config(config, ckpt, vae_ckpt=None, verbose=False):
     print(f"Loading model from {ckpt}")
-    pl_sd = torch.load(ckpt, map_location="cpu")
-    if "global_step" in pl_sd:
-        print(f"Global Step: {pl_sd['global_step']}")
-    sd = pl_sd["state_dict"]
+    # added be me to deal with ckpt and safetensors checkpoints
+    if ckpt.endswith("ckpt"):
+        pl_sd = torch.load(ckpt, map_location="cpu")
+        if "global_step" in pl_sd:
+            print(f"Global Step: {pl_sd['global_step']}")
+        sd = pl_sd["state_dict"]
+    elif ckpt.endswith("safetensors"):
+        sd = load_safetensors(ckpt)
+    else:
+        raise NotImplementedError("Unsupported checkpoint file format")
+
     if vae_ckpt is not None:
         print(f"Loading VAE from {vae_ckpt}")
         vae_sd = torch.load(vae_ckpt, map_location="cpu")["state_dict"]
         sd = {
-            k: vae_sd[k[len("first_stage_model.") :]] if k.startswith("first_stage_model.") else v
+            k: vae_sd[k[len("first_stage_model.") :] if k.startswith("first_stage_model.") else v]
             for k, v in sd.items()
         }
     model = instantiate_from_config(config.model)
@@ -58,6 +103,8 @@ def load_model_from_config(config, ckpt, vae_ckpt=None, verbose=False):
         print("unexpected keys:")
         print(u)
     return model
+
+
 
 
 def main():
@@ -126,3 +173,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
