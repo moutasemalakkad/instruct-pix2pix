@@ -83,12 +83,13 @@ class GeneralConditioner(nn.Module):
 
     def __init__(self, emb_models: Union[List, ListConfig]):
         super().__init__()
+        self.device = torch.device('cuda')  # Specify the device for embedders
         embedders = []
         for n, embconfig in enumerate(emb_models):
-            embedder = instantiate_from_config(embconfig)
-            assert isinstance(
-                embedder, AbstractEmbModel
-            ), f"embedder model {embedder.__class__.__name__} has to inherit from AbstractEmbModel"
+            embedder = instantiate_from_config(embconfig).to(self.device)  # Move embedder to the specified device
+            # assert isinstance(
+            #     embedder, AbstractEmbModel
+            # ), f"embedder model {embedder.__class__.__name__} has to inherit from AbstractEmbModel"
             embedder.is_trainable = embconfig.get("is_trainable", False)
             embedder.ucg_rate = embconfig.get("ucg_rate", 0.0)
             if not embedder.is_trainable:
@@ -359,7 +360,7 @@ class FrozenCLIPEmbedder(AbstractEmbModel):
         assert layer in self.LAYERS
         self.tokenizer = CLIPTokenizer.from_pretrained(version)
         self.transformer = CLIPTextModel.from_pretrained(version)
-        self.device = device
+        self.device = torch.device(device)
         self.max_length = max_length
         if freeze:
             self.freeze()
