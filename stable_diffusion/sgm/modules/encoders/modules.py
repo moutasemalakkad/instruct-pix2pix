@@ -83,7 +83,7 @@ class GeneralConditioner(nn.Module):
 
     def __init__(self, emb_models: Union[List, ListConfig]):
         super().__init__()
-        self.device = torch.device('cuda')  # Specify the device for embedders
+        self.device = torch.device('cpu')  # Specify the device for embedders
         embedders = []
         for n, embconfig in enumerate(emb_models):
             embedder = instantiate_from_config(embconfig).to(self.device)  # Move embedder to the specified device
@@ -237,7 +237,7 @@ class ClassEmbedder(AbstractEmbModel):
             c = c[:, None, :]
         return c
 
-    def get_unconditional_conditioning(self, bs, device="cuda"):
+    def get_unconditional_conditioning(self, bs, device="cpu"):
         uc_class = (
             self.n_classes - 1
         )  # 1000 classes --> 0 ... 999, one extra class for ucg (class 1000)
@@ -262,7 +262,7 @@ class FrozenT5Embedder(AbstractEmbModel):
     """Uses the T5 transformer encoder for text"""
 
     def __init__(
-        self, version="google/t5-v1_1-xxl", device="cuda", max_length=77, freeze=True
+        self, version="google/t5-v1_1-xxl", device="cpu", max_length=77, freeze=True
     ):  # others are google/t5-v1_1-xl and google/t5-v1_1-xxl
         super().__init__()
         self.tokenizer = T5Tokenizer.from_pretrained(version)
@@ -290,7 +290,7 @@ class FrozenT5Embedder(AbstractEmbModel):
             return_tensors="pt",
         )
         tokens = batch_encoding["input_ids"].to(self.device)
-        with torch.autocast("cuda", enabled=False):
+        with torch.autocast("cpu", enabled=False):
             outputs = self.transformer(input_ids=tokens)
         z = outputs.last_hidden_state
         return z
@@ -305,7 +305,7 @@ class FrozenByT5Embedder(AbstractEmbModel):
     """
 
     def __init__(
-        self, version="google/byt5-base", device="cuda", max_length=77, freeze=True
+        self, version="google/byt5-base", device="cpu", max_length=77, freeze=True
     ):  # others are google/t5-v1_1-xl and google/t5-v1_1-xxl
         super().__init__()
         self.tokenizer = ByT5Tokenizer.from_pretrained(version)
@@ -332,7 +332,7 @@ class FrozenByT5Embedder(AbstractEmbModel):
             return_tensors="pt",
         )
         tokens = batch_encoding["input_ids"].to(self.device)
-        with torch.autocast("cuda", enabled=False):
+        with torch.autocast("cpu", enabled=False):
             outputs = self.transformer(input_ids=tokens)
         z = outputs.last_hidden_state
         return z
@@ -349,7 +349,7 @@ class FrozenCLIPEmbedder(AbstractEmbModel):
     def __init__(
         self,
         version="openai/clip-vit-large-patch14",
-        device="cuda",
+        device="cpu",
         max_length=77,
         freeze=True,
         layer="last",
@@ -417,7 +417,7 @@ class FrozenOpenCLIPEmbedder2(AbstractEmbModel):
         self,
         arch="ViT-H-14",
         version="laion2b_s32b_b79k",
-        device="cuda",
+        device="cpu",
         max_length=77,
         freeze=True,
         layer="last",
@@ -519,7 +519,7 @@ class FrozenOpenCLIPEmbedder(AbstractEmbModel):
         self,
         arch="ViT-H-14",
         version="laion2b_s32b_b79k",
-        device="cuda",
+        device="cpu",
         max_length=77,
         freeze=True,
         layer="last",
@@ -589,7 +589,7 @@ class FrozenOpenCLIPImageEmbedder(AbstractEmbModel):
         self,
         arch="ViT-H-14",
         version="laion2b_s32b_b79k",
-        device="cuda",
+        device="cpu",
         max_length=77,
         freeze=True,
         antialias=True,
@@ -745,7 +745,7 @@ class FrozenCLIPT5Encoder(AbstractEmbModel):
         self,
         clip_version="openai/clip-vit-large-patch14",
         t5_version="google/t5-v1_1-xl",
-        device="cuda",
+        device="cpu",
         clip_max_length=77,
         t5_max_length=77,
     ):

@@ -1,0 +1,34 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        
+        {
+            "name": "Python: Edit CLI",
+            "type": "python",
+            "request": "launch",
+            "program": "~/Desktop/instruct-pix2pix/edit_cli.py",
+            "args": [
+                // "--input", "/home/moutasemhome/instruct-pix2pix/imgs/example.jpg",
+                // "--output", "/home/moutasemhome/instruct-pix2pix/imgs/output.jpg",
+                // "--ckpt", "/home/moutasemhome/instruct-pix2pix/checkpoints/instruct-pix2pix-00-22000.ckpt",
+                // "--config", "/home/moutasemhome/instruct-pix2pix/configs/generate.yaml",
+                // "--edit", "turn him into a cyborg",
+                // "--resolution", "250"
+
+                "--input", "~/Desktop/instruct-pix2pix/imgs/example.jpg",
+                "--output", "~/Desktop/instruct-pix2pix/imgs/output.jpg",
+                "--ckpt", "~/Desktop/instruct-pix2pix/checkpoints/sd_xl_base_1.0.safetensors",
+                "--config", "~/Desktop/instruct-pix2pix/configs/sd_xl_base.yaml",
+                "--edit", "turn him into a cyborg",
+                "--resolution", "250"
+            ],
+            "justMyCode": false, // will skip external code
+            "env": {
+                "PYTHONPATH": "~/Desktop/instruct-pix2pix/stable_diffusion:~/Desktop/instruct-pix2pix/stable_diffusion/sgm:~/Desktop/instruct-pix2pix/stable_diffusion/ldm"
+            },
+            //env we want to use
+            "python": "/usr/local/Caskroom/miniforge/base/envs/sdxl_env/bin/python" // "/opt/conda/envs/ip2p/bin/python"
+        }
+    ]
+}
+

@@ -22,9 +22,9 @@ from PIL import Image, ImageOps
 from torch import autocast
 
 # for debugging
-sys.path.append("/home/moutasemhome/stable_diffusion")
-sys.path.append('/home/moutasemhome/stable_diffusion/sgm')
-sys.path.append('/home/moutasemhome/stable_diffusion/ldm')
+sys.path.append("~/Desktop/stable_diffusion")
+sys.path.append('~/Desktop/stable_diffusion/sgm')
+sys.path.append('~/Desktop/stable_diffusion/ldm')
 # for regular run
 sys.path.append("./stable_diffusion")
 sys.path.append('./stable_diffusion/sgm')
@@ -146,10 +146,10 @@ def main():
 
     config = OmegaConf.load(args.config)
     model = load_model_from_config(config, args.ckpt, args.vae_ckpt)
-    model.eval().cuda()
+    model.eval()#.cuda()
 
     #if we are using SDXL, we need to use the DiscreteDenoiser
-    if args.config == '/home/moutasemhome/instruct-pix2pix/configs/sd_xl_base.yaml':
+    if args.config == '/Users/moutasemhome/Desktop/instruct-pix2pix/configs/sd_xl_base.yaml':
         model_wrap = DiscreteDenoiser(config["model"]["params"]["denoiser_config"]["params"]["weighting_config"], config["model"]["params"]["denoiser_config"]["params"]["scaling_config"], 1000, config["model"]["params"]["denoiser_config"]["params"]["discretization_config"], do_append_zero=False, quantize_c_noise=True, flip=True)
     # else we use the CompVisDenoiser
     else:
