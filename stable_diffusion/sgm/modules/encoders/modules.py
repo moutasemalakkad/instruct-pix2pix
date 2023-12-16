@@ -87,9 +87,9 @@ class GeneralConditioner(nn.Module):
         embedders = []
         for n, embconfig in enumerate(emb_models):
             embedder = instantiate_from_config(embconfig).to(self.device)  # Move embedder to the specified device
-            # assert isinstance(
-            #     embedder, AbstractEmbModel
-            # ), f"embedder model {embedder.__class__.__name__} has to inherit from AbstractEmbModel"
+            assert isinstance(
+                embedder, AbstractEmbModel
+            ), f"embedder model {embedder.__class__.__name__} has to inherit from AbstractEmbModel"
             embedder.is_trainable = embconfig.get("is_trainable", False)
             embedder.ucg_rate = embconfig.get("ucg_rate", 0.0)
             if not embedder.is_trainable:
@@ -166,8 +166,13 @@ class GeneralConditioner(nn.Module):
                 ):
                     emb = torch.zeros_like(emb)
                 if out_key in output:
-                    output[out_key] = torch.cat(
+                    if emb.shape[0] == 1:
+                        output[out_key] = torch.cat(
                         (output[out_key], emb), self.KEY2CATDIM[out_key]
+                    )
+                    else:
+                        output[out_key] = torch.cat(
+                            (output[out_key], emb.reshape(1,-1)), self.KEY2CATDIM[out_key]
                     )
                 else:
                     output[out_key] = emb

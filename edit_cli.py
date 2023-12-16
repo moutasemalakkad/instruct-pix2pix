@@ -158,16 +158,31 @@ def main():
     # representation of empty string
     #null_token = model.get_learned_conditioning([""]) # that is for ldm
 
-    #null_token = config['model']['params']['conditioner_config']['target']
+    null_token = config['model']['params']['conditioner_config']['target']
 
-    emb_models_config = config['model']['params']['conditioner_config']['params']['emb_models']
-    conditioner = GeneralConditioner(emb_models=emb_models_config)
-    null_token = conditioner({'txt':""})
+    # Create the dictionary with parameters -> need to be tensors we check ndim
+    params = {
+        'txt': "",
+        "original_size_as_tuple": torch.tensor((1024, 1024)),
+        "crop_coords_top_left": torch.tensor((0)),
+        "crop_coords_bottom_right": torch.tensor((0)),
+        "image": torch.tensor([256, 256])
+    }
+
+    # Call the conditioner method with the correct parameters
+    null_token = model.conditioner(params)
 
 
-#get_unconditional_conditioning
+    #get_unconditional_conditioning
 
-    config["model"].conditioner.get_unconditional_conditioning()
+    config["model"].conditioner.get_unconditional_conditioning() #ldm
+
+    # c, uc = model.conditioner.get_unconditional_conditioning( 
+    #                 batch,
+    #                 batch_uc=batch_uc,
+    #                 force_uc_zero_embeddings=force_uc_zero_embeddings,
+    #                 force_cond_zero_embeddings=force_cond_zero_embeddings,
+    #            )
 
 
     seed = random.randint(0, 100000) if args.seed is None else args.seed
