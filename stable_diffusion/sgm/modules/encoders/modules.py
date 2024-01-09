@@ -201,7 +201,7 @@ class InceptionV3(nn.Module):
 
     def __init__(self, normalize_input=False, **kwargs):
         super().__init__()
-        from pytorch_fid import inception
+        #from pytorch_fid import inception
 
         kwargs["resize_input"] = True
         self.model = inception.InceptionV3(normalize_input=normalize_input, **kwargs)
@@ -434,7 +434,7 @@ class FrozenOpenCLIPEmbedder2(AbstractEmbModel):
         model, _, _ = open_clip.create_model_and_transforms(
             arch,
             device=torch.device("cpu"),
-            pretrained=version,
+            pretrained=False#version,
         )
         del model.visual
         self.model = model
@@ -505,7 +505,7 @@ class FrozenOpenCLIPEmbedder2(AbstractEmbModel):
             ):
                 x = checkpoint(r, x, attn_mask)
             else:
-                x = r(x, attn_mask=attn_mask)
+                x = r(x, attn_mask=attn_mask) # risedual att block
         outputs["last"] = x.permute(1, 0, 2)  # LND -> NLD
         return outputs
 
@@ -522,7 +522,7 @@ class FrozenOpenCLIPEmbedder(AbstractEmbModel):
 
     def __init__(
         self,
-        arch="ViT-H-14",
+        arch="ViT-H-14", 
         version="laion2b_s32b_b79k",
         device="cpu",
         max_length=77,
@@ -592,7 +592,7 @@ class FrozenOpenCLIPImageEmbedder(AbstractEmbModel):
 
     def __init__(
         self,
-        arch="ViT-H-14",
+        arch="ViT-H-14", 
         version="laion2b_s32b_b79k",
         device="cpu",
         max_length=77,

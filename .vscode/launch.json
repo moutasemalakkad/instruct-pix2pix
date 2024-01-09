@@ -15,14 +15,14 @@
                 // "--edit", "turn him into a cyborg",
                 // "--resolution", "250"
 
-                "--input", "~/Desktop/instruct-pix2pix/imgs/example.jpg",
+                "--input", "~/Desktop/example.jpg",
                 "--output", "~/Desktop/instruct-pix2pix/imgs/output.jpg",
                 "--ckpt", "~/Desktop/instruct-pix2pix/checkpoints/sd_xl_base_1.0.safetensors",
                 "--config", "~/Desktop/instruct-pix2pix/configs/sd_xl_base.yaml",
                 "--edit", "turn him into a cyborg",
                 "--resolution", "250"
             ],
-            "justMyCode": false, // will skip external code
+            "justMyCode": true, // will skip external code
             "env": {
                 "PYTHONPATH": "~/Desktop/instruct-pix2pix/stable_diffusion:~/Desktop/instruct-pix2pix/stable_diffusion/sgm:~/Desktop/instruct-pix2pix/stable_diffusion/ldm"
             },

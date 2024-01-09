@@ -8,9 +8,9 @@ from argparse import ArgumentParser
 import einops
 #from stable_diffusion.sgm.modules.diffusionmodules.discretizer import EDMDiscretization #discretizer for sgm
 #from stable_diffusion.sgm.models.diffusion import DiffusionEngine #
-from stable_diffusion.sgm.modules.encoders.modules import GeneralConditioner
-from stable_diffusion.sgm.modules.diffusionmodules.denoiser import DiscreteDenoiser #denoiser for sgm
-from stable_diffusion.sgm.modules.encoders.modules import FrozenOpenCLIPImageEmbedder
+#from stable_diffusion.sgm.modules.encoders.modules import GeneralConditioner
+#from stable_diffusion.sgm.modules.diffusionmodules.denoiser import DiscreteDenoiser #denoiser for sgm
+#from stable_diffusion.sgm.modules.encoders.modules import FrozenOpenCLIPImageEmbedder
 
 import k_diffusion as K
 import numpy as np
@@ -59,9 +59,9 @@ class CFGDenoiser(nn.Module):
         cfg_sigma = einops.repeat(sigma, "1 ... -> n ...", n=3)
         cfg_cond = {
             # torch.Size([3, 77, 768])
-            "c_crossattn": [torch.cat([cond["c_crossattn"][0], uncond["c_crossattn"][0], uncond["c_crossattn"][0]])],
+            "c_crossattn": [torch.cat([cond["c_crossattn"][0]['crossattn'], uncond["c_crossattn"][0]['crossattn'], uncond["c_crossattn"][0]['crossattn']])],
             # torch.Size([3, 4, 32, 32])
-            "c_concat": [torch.cat([cond["c_concat"][0], cond["c_concat"][0], uncond["c_concat"][0]])],
+            "c_concat": [torch.cat([cond["c_concat"][0].values, cond["c_concat"][0].values, uncond["c_concat"][0]])],
         }
         out_cond, out_img_cond, out_uncond = self.inner_model(cfg_z, cfg_sigma, cond=cfg_cond).chunk(3)
         # out_uncond = out_img_cond torch.Size([1, 4, 32, 32])
@@ -106,7 +106,7 @@ def load_model_from_config(config, ckpt, vae_ckpt=None, verbose=False):
     elif ckpt.endswith("safetensors"):
         sd = load_safetensors(ckpt)
     else:
-        raise NotImplementedError("Unsupported checkpoint file format")
+        pass #raise NotImplementedError("Unsupported checkpoint file format")
 
     if vae_ckpt is not None:
         print(f"Loading VAE from {vae_ckpt}")
@@ -134,7 +134,7 @@ def main():
     parser.add_argument("--resolution", default=512, type=int)
     parser.add_argument("--steps", default=100, type=int)
     parser.add_argument("--config", default="configs/generate.yaml", type=str)
-    parser.add_argument("--ckpt", default="checkpoints/instruct-pix2pix-00-22000.ckpt", type=str)
+    parser.add_argument("--ckpt", default=None, type=str)
     parser.add_argument("--vae-ckpt", default=None, type=str)
     parser.add_argument("--input", required=True, type=str)
     parser.add_argument("--output", required=True, type=str)
@@ -148,25 +148,27 @@ def main():
     model = load_model_from_config(config, args.ckpt, args.vae_ckpt)
     model.eval()#.cuda()
 
-    #if we are using SDXL, we need to use the DiscreteDenoiser
-    if args.config == '/Users/moutasemhome/Desktop/instruct-pix2pix/configs/sd_xl_base.yaml':
-        model_wrap = DiscreteDenoiser(config["model"]["params"]["denoiser_config"]["params"]["weighting_config"], config["model"]["params"]["denoiser_config"]["params"]["scaling_config"], 1000, config["model"]["params"]["denoiser_config"]["params"]["discretization_config"], do_append_zero=False, quantize_c_noise=True, flip=True)
-    # else we use the CompVisDenoiser
-    else:
-        model_wrap = K.external.CompVisDenoiser(model)
-    model_wrap_cfg = CFGDenoiser(model_wrap)
-    # representation of empty string
-    #null_token = model.get_learned_conditioning([""]) # that is for ldm
+    # #if we are using SDXL, we need to use the DiscreteDenoiser
+    # if args.config == '/Users/moutasemhome/Desktop/instruct-pix2pix/configs/sd_xl_base.yaml':
+    #     #model_wrap = DiscreteDenoiser(config["model"]["params"]["denoiser_config"]["params"]["weighting_config"], config["model"]["params"]["denoiser_config"]["params"]["scaling_config"], config["model"]["params"]["denoiser_config"]["params"]["num_idx"], config["model"]["params"]["denoiser_config"]["params"]["discretization_config"], do_append_zero=False, quantize_c_noise=True, flip=True)
+    #     model_wrap = model.denoiser(config["model"]["params"]["denoiser_config"]["params"]["weighting_config"], config["model"]["params"]["denoiser_config"]["params"]["scaling_config"], config["model"]["params"]["denoiser_config"]["params"]["num_idx"], config["model"]["params"]["denoiser_config"]["params"]["discretization_config"], do_append_zero=False, quantize_c_noise=True, flip=True)
+    # # else we use the CompVisDenoiser
+    # else:
+    #     model_wrap = K.external.CompVisDenoiser(model)
+    # model_wrap_cfg = CFGDenoiser(model_wrap)
+    # # representation of empty string
+    # #null_token = model.get_learned_conditioning([""]) # that is for ldm
 
-    null_token = config['model']['params']['conditioner_config']['target']
+    # #null_token = config['model']['params']['conditioner_config']['target']
 
     # Create the dictionary with parameters -> need to be tensors we check ndim
     params = {
         'txt': "",
-        "original_size_as_tuple": torch.tensor((1024, 1024)),
-        "crop_coords_top_left": torch.tensor((0)),
-        "crop_coords_bottom_right": torch.tensor((0)),
-        "image": torch.tensor([256, 256])
+        "original_size_as_tuple": torch.tensor([[1024, 1024]]),
+        "crop_coords_top_left": torch.tensor([[0, 0]]) ,#torch.tensor((0, 0)),
+        "crop_coords_bottom_right": torch.tensor([[1, 1]]),
+        "image": torch.tensor([[256, 256]]),
+        "target_size_as_tuple": torch.tensor([[256, 256]])
     }
 
     # Call the conditioner method with the correct parameters
@@ -175,7 +177,7 @@ def main():
 
     #get_unconditional_conditioning
 
-    config["model"].conditioner.get_unconditional_conditioning() #ldm
+    #config["model"].conditioner.get_unconditional_conditioning() #ldm
 
     # c, uc = model.conditioner.get_unconditional_conditioning( 
     #                 batch,
@@ -187,10 +189,10 @@ def main():
 
     seed = random.randint(0, 100000) if args.seed is None else args.seed
     input_image = Image.open(args.input).convert("RGB")
-    width, height = input_image.size
+    width, height = input_image.size # 512x 512
     factor = args.resolution / max(width, height)
     factor = math.ceil(min(width, height) * factor / 64) * 64 / min(width, height)
-    width = int((width * factor) // 64) * 64
+    width = int((width * factor) // 64) * 64 #256 x 256
     height = int((height * factor) // 64) * 64
     input_image = ImageOps.fit(input_image, (width, height), method=Image.Resampling.LANCZOS)
 
@@ -198,43 +200,62 @@ def main():
         input_image.save(args.output)
         return
 
-    with torch.no_grad(), autocast("cuda"), model.ema_scope():
+    with torch.no_grad(), autocast("cpu"), model.ema_scope():
         cond = {}
+            # Create the dictionary with parameters -> need to be tensors we check ndim
+        params = {
+            'txt': args.edit,
+            "original_size_as_tuple": torch.tensor([[1024, 1024]]),
+            "crop_coords_top_left": torch.tensor([[0, 0]]),
+            "crop_coords_bottom_right": torch.tensor([[1, 1]]),
+            "image": torch.tensor([256, 256]),
+            "target_size_as_tuple": torch.tensor([[256, 256]])
+        }
         # edit command -> tensor torch.Size([1, 77, 768]) || Attention
-        cond["c_crossattn"] = [model.get_learned_conditioning([args.edit])]
-        # [256, 256, 3] -> [1, 3, 256, 256]
+        # sdxl: torch.Size([1, 77, 2048])
+        cond["c_crossattn"] = [model.conditioner(params)]
+        # [256, 256, 3] 
+        # sdxl: [256, 256, 3]
         input_image = 2 * torch.tensor(np.array(input_image)).float() / 255 - 1
         #[1, 3, 256, 256]
+        #sdxl: [1, 3, 256, 256]
         input_image = rearrange(input_image, "h w c -> 1 c h w").to(model.device)
         # torch.Size([1, 4, 32, 32])
-        cond["c_concat"] = [model.encode_first_stage(input_image).mode()]
+        # sdxl torch.Size([1, 4, 32]) #takes long here 225
+        cond["c_concat"] = model.encode_first_stage(input_image).mode()
 
         uncond = {}
         # torch.Size([1, 77, 768])
+        # sdxl torch.Size([1, 77, 2048])
         uncond["c_crossattn"] = [null_token]
         # torch.Size([1, 4, 32, 32])
-        uncond["c_concat"] = [torch.zeros_like(cond["c_concat"][0])] # remove next zero
+        # sdxl torch.Size([1, 4, 32])
+        uncond["c_concat"] = torch.zeros_like(cond["c_concat"][0][0]) # remove next zero
 
         # we need to create an instance of EDMDiscretization  for sdxl# this causes RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu!
         # discretization_instance = EDMDiscretization()
         # sigmas = discretization_instance.get_sigmas(args.steps)
 
         #torch.Size([101])
-        sigmas = model_wrap.get_sigmas(args.steps)
+        #sdxl torch.Size([1000]) -> 1000 is the number of steps configs
+        #sigmas = model_wrap.get_sigmas(args.steps)
+        #sigmas = model_wrap.sigmas
 
 
-        extra_args = {
-            "cond": cond,
-            "uncond": uncond,
-            "text_cfg_scale": args.cfg_text,
-            "image_cfg_scale": args.cfg_image,
-        }
+        # extra_args = {
+        #     "cond": cond,
+        #     "uncond": uncond,
+        #     "text_cfg_scale": args.cfg_text,
+        #     "image_cfg_scale": args.cfg_image,        }
         torch.manual_seed(seed)
         # torch.Size([1, 4, 32, 32])
-        z = torch.randn_like(cond["c_concat"][0]) * sigmas[0] # remove next zero
+        z = torch.randn_like(cond["c_concat"][0]) * model.denoiser.sigmas # remove next zero
+
+        z = model.denoiser(model.model, z, model.denoiser.sigmas, cond)
+
         # sigmas: torch.Size([101])
         # z torch.Size([1, 4, 32, 32])
-        z = K.sampling.sample_euler_ancestral(model_wrap_cfg, z, sigmas, extra_args=extra_args)
+        #z = K.sampling.sample_euler_ancestral(model_wrap_cfg, z, sigmas, extra_args=extra_args)
         # torch.Size([256, 256, 3]
         x = model.decode_first_stage(z)
         x = torch.clamp((x + 1.0) / 2.0, min=0.0, max=1.0)
